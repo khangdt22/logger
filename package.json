@@ -1,6 +1,6 @@
 {
     "name": "@khangdt22/logger",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "description": "A simple logger for NodeJS application",
     "license": "MIT",
     "author": "Diep Dang <khangdt310722@gmail.com>",
