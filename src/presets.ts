@@ -31,11 +31,11 @@ function createTelegramTransport(options: Required<TransportOptions>['telegram']
 }
 
 export function createDefaultLogger(options: DefaultLoggerOptions = {}) {
-    const { formatterOptions = {}, transportOptions = {} } = options
+    const { formatterOptions = {}, transportOptions = {}, level = LogLevel.INFO } = options
     const debugLevel = getLevel(process.env.LOG_DEBUG_LEVEL as LogLevelType) ?? LogLevel.DEBUG
 
     const logger = new Logger({
-        level: LogLevel.DEBUG,
+        level,
         formatters: [interpolation(formatterOptions.interpolation), error()],
         transports: [
             new ConsoleTransport({
