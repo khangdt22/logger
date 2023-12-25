@@ -162,8 +162,8 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
             entry[LOG_MESSAGE] = entry.message
         }
 
-        if (args.length === 1 && isFunction(args[0]?.[LOG_PARAMS])) {
-            args = args[0][LOG_PARAMS]()
+        if (isFunction(args[0]?.[LOG_PARAMS])) {
+            args.unshift(...args.shift()![LOG_PARAMS]())
         }
 
         for (const arg of args) {
