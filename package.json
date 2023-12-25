@@ -1,0 +1,104 @@
+{
+    "name": "@khangdt22/logger2",
+    "version": "0.0.0",
+    "description": "A simple logger for NodeJS application",
+    "license": "MIT",
+    "author": "Diep Dang <khangdt310722@gmail.com>",
+    "homepage": "https://github.com/khangdt22/logger",
+    "repository": "github:khangdt22/logger",
+    "bugs": {
+        "email": "khangdt310722@gmail.com",
+        "url": "https://github.com/khangdt22/logger/issues"
+    },
+    "files": [
+        "*",
+        "!**/*.tsbuildinfo"
+    ],
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "publishConfig": {
+        "access": "public",
+        "directory": "dist"
+    },
+    "type": "module",
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
+    "exports": {
+        ".": {
+            "default": "./lib/index.js",
+            "require": "./lib/index.cjs",
+            "types": "./lib/index.d.ts"
+        },
+        "./prettiers": {
+            "default": "./lib/prettiers.js",
+            "require": "./lib/prettiers.cjs",
+            "types": "./lib/prettiers.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "build": "rimraf dist && tsup && tsc --project ./tsconfig.build.json",
+        "test": "vitest",
+        "coverage": "vitest run --coverage",
+        "release": "np --no-yarn --no-release-draft --yolo --no-publish --message='chore: release v%s' && pnpm publish",
+        "up": "ncu -i",
+        "lint": "pnpm prettier '*.!(js|jsx|cjs|cjsx|mjs|mjsx|ts|tsx|cts|ctsx|mts|mtsx|d.ts|vue)' && pnpm eslint .",
+        "eslint": "eslint --ignore-path .gitignore --fix",
+        "prettier": "prettier --ignore-path .gitignore --ignore-unknown --write",
+        "preinstall": "npx only-allow pnpm",
+        "prepare": "simple-git-hooks",
+        "prepublishOnly": "pnpm build"
+    },
+    "dependencies": {
+        "@khangdt22/utils": "latest",
+        "bottleneck": "^2.19.5",
+        "bytes": "^3.1.2",
+        "clean-stack": "^5.2.0",
+        "colorette": "^2.0.20",
+        "date-fns": "^3.0.6",
+        "fast-glob": "^3.3.2",
+        "is-error-instance": "^3.0.0",
+        "merge-error-cause": "^5.0.0",
+        "p-queue": "^8.0.1",
+        "pretty-ms": "^8.0.0",
+        "serialize-error": "^11.0.3",
+        "telegraf": "^4.15.3"
+    },
+    "devDependencies": {
+        "@commitlint/cli": "latest",
+        "@commitlint/config-conventional": "latest",
+        "@khangdt22/eslint-config": "latest",
+        "@khangdt22/prettier-config": "latest",
+        "@swc/core": "latest",
+        "@types/bytes": "^3.1.4",
+        "@types/node": "latest",
+        "@vitest/coverage-v8": "latest",
+        "eslint": "latest",
+        "lint-staged": "latest",
+        "np": "latest",
+        "npm-check-updates": "latest",
+        "only-allow": "latest",
+        "prettier": "latest",
+        "simple-git-hooks": "latest",
+        "ts-node": "latest",
+        "tsup": "latest",
+        "typescript": "latest",
+        "vitest": "latest"
+    },
+    "commitlint": {
+        "extends": "@commitlint/config-conventional"
+    },
+    "eslintConfig": {
+        "extends": "@khangdt22"
+    },
+    "lint-staged": {
+        "*.{js,jsx,cjs,cjsx,mjs,mjsx,ts,tsx,cts,ctsx,mts,mtsx,vue}": "pnpm eslint",
+        "*.!(js|jsx|cjs|cjsx|mjs|mjsx|ts|tsx|cts|ctsx|mts|mtsx|d.ts|vue)": "pnpm prettier"
+    },
+    "prettier": "@khangdt22/prettier-config",
+    "simple-git-hooks": {
+        "commit-msg": "npx --no -- commitlint --edit ${1}",
+        "pre-commit": "npx lint-staged"
+    }
+}
