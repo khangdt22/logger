@@ -71,7 +71,7 @@
         "@khangdt22/eslint-config": "latest",
         "@khangdt22/prettier-config": "latest",
         "@swc/core": "latest",
-        "@types/bytes": "^3.1.4",
+        "@types/bytes": "latest",
         "@types/node": "latest",
         "@vitest/coverage-v8": "latest",
         "eslint": "latest",
