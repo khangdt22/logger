@@ -23,19 +23,18 @@
     },
     "type": "module",
     "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
+    "types": "./index.d.ts",
     "exports": {
         ".": {
             "default": "./lib/index.js",
             "require": "./lib/index.cjs",
-            "types": "./lib/index.d.ts"
+            "types": "./index.d.ts"
         },
-        "./prettiers": {
-            "default": "./lib/prettiers.js",
-            "require": "./lib/prettiers.cjs",
-            "types": "./lib/prettiers.d.ts"
-        },
-        "./package.json": "./package.json"
+        "./*": {
+            "default": "./lib/*.js",
+            "require": "./lib/*.cjs",
+            "types": "./*.d.ts"
+        }
     },
     "scripts": {
         "build": "rimraf dist && tsup && tsc --project ./tsconfig.build.json",

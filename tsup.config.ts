@@ -1,5 +1,4 @@
-import { parse } from 'node:path'
-import { join } from 'node:path'
+import { parse, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { mkdir, cp, writeFile } from 'node:fs/promises'
 import fg from 'fast-glob'
@@ -8,10 +7,7 @@ import { readJsonFile } from '@khangdt22/utils/fs'
 import { omit } from '@khangdt22/utils/object'
 
 export default defineConfig({
-    entry: {
-        index: 'src/index.ts',
-        prettiers: 'src/prettiers.ts',
-    },
+    entry: ['src/**/*.ts'],
     outDir: 'dist/lib',
     format: ['esm', 'cjs'],
     clean: true,
@@ -22,7 +18,7 @@ export default defineConfig({
         const files = fg.sync('src/**/*', { onlyFiles: true })
 
         for (const file of files) {
-            const { dir, base } = parse(file.replace('src/', ''))
+            const { dir, base } = parse(file)
             const outDir = join('dist', dir)
 
             if (dir.length > 0 && !existsSync(dir)) {
