@@ -80,6 +80,7 @@
         "npm-check-updates": "latest",
         "only-allow": "latest",
         "prettier": "latest",
+        "rimraf": "latest",
         "simple-git-hooks": "latest",
         "ts-node": "latest",
         "tsup": "latest",
