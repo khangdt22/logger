@@ -100,7 +100,7 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
     }
 
     public log(level: number, name: string, ...args: unknown[]) {
-        this.write(level, name, ...args).catch((error) => {
+        this.queue.add(async () => this.write(level, name, ...args)).catch((error) => {
             throw error
         })
     }
@@ -116,9 +116,7 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
             return
         }
 
-        this.queue.add(async () => this.writeToAllTransports(entry), { priority: -entry.timestamp }).catch((error) => {
-            throw error
-        })
+        return this.writeToAllTransports(entry)
     }
 
     protected async writeToAllTransports(entry: LogEntry) {
