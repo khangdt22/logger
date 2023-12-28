@@ -2,6 +2,7 @@ import { notNullish } from '@khangdt22/utils/condition'
 import { createDeferred, type Awaitable } from '@khangdt22/utils/promise'
 import { TypedEventEmitter } from '@khangdt22/utils/event'
 import type { AnyObject } from '@khangdt22/utils/object'
+import PQueue from 'p-queue'
 import type { LogFormatter, LogEntry } from '../types'
 import type { BaseLogger } from '../base-logger'
 import { LOG_FORMATTED_MESSAGE } from '../constants'
@@ -17,6 +18,8 @@ export abstract class Transport<E extends AnyObject = AnyObject> extends TypedEv
     public readonly formatters: LogFormatter[]
     public readonly writeType: 'sync' | 'async' = 'async'
 
+    protected readonly queue: PQueue
+
     protected constructor(name: string, options: TransportOptions) {
         super()
 
@@ -26,6 +29,7 @@ export abstract class Transport<E extends AnyObject = AnyObject> extends TypedEv
         this.name = name
         this.level = level
         this.formatters = formatters
+        this.queue = new PQueue({ concurrency: 1 })
     }
 
     public isTransportAllowed({ excludeTransports, level }: LogEntry) {
@@ -51,7 +55,7 @@ export abstract class Transport<E extends AnyObject = AnyObject> extends TypedEv
         const clean = addExitHandler(() => isLogged)
         const message = this.getLogMessage(entry, logger)
 
-        return (this.log(message, entry, logger) as Promise<void>).catch(this.onError.bind(this)).finally(() => {
+        return this.queue.add(() => this.log(message, entry, logger)).catch(this.onError.bind(this)).finally(() => {
             isLogged.resolve()
             clean()
         })
