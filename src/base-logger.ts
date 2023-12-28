@@ -3,7 +3,6 @@ import { isString } from '@khangdt22/utils/string'
 import { isObject } from '@khangdt22/utils/object'
 import { isNullish } from '@khangdt22/utils/condition'
 import { isFunction } from '@khangdt22/utils/function'
-import PQueue from 'p-queue'
 import type { BaseLoggerOptions, LogEntry, LogFilter, LogFormatter, LoggerEvents, LogMetadata, ChildLoggerOptions, LogNameFilter } from './types'
 import { LOG_METADATA, LOG_MESSAGE } from './constants'
 import { LOG_PARAMS } from './utils'
@@ -18,11 +17,11 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
 
     public readonly filters: LogFilter[]
     public readonly formatters: LogFormatter[]
-    public readonly transports: Transport[]
+    public readonly syncTransports: Transport[]
+    public readonly asyncTransports: Transport[]
 
     protected readonly nameFilter: LogNameFilter
     protected readonly timers: Record<string, bigint> = {}
-    protected readonly queue: PQueue
 
     protected timerId = 0
 
@@ -31,6 +30,7 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
 
         const { level = Number.NEGATIVE_INFINITY, silent = false, name, parentNames = [], nameFilter } = options
         const { filters = [], formatters = [], transports = [] } = options
+        const { syncTransports, asyncTransports } = this.getTransports(transports)
 
         this.level = level
         this.silent = silent
@@ -38,9 +38,9 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
         this.parentNames = parentNames
         this.filters = filters
         this.formatters = formatters
-        this.transports = transports
+        this.syncTransports = syncTransports
+        this.asyncTransports = asyncTransports
         this.nameFilter = nameFilter ?? (() => true)
-        this.queue = new PQueue({ concurrency: 1 })
     }
 
     public enable() {
@@ -64,7 +64,10 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
     }
 
     public addTransport(transport: Transport) {
-        this.transports.push(transport)
+        const { syncTransports, asyncTransports } = this.getTransports([transport])
+
+        this.syncTransports.push(...syncTransports)
+        this.asyncTransports.push(...asyncTransports)
     }
 
     public child(options: ChildLoggerOptions = {}): this {
@@ -100,12 +103,6 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
     }
 
     public log(level: number, name: string, ...args: unknown[]) {
-        this.queue.add(async () => this.write(level, name, ...args)).catch((error) => {
-            throw error
-        })
-    }
-
-    protected async write(level: number, name: string, ...args: unknown[]) {
         if (!this.isLoggable(level)) {
             return
         }
@@ -116,25 +113,40 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
             return
         }
 
-        return this.writeToAllTransports(entry)
+        this.writeToAllAsyncTransports(entry).catch((error) => {
+            throw error
+        })
+
+        for (const transport of this.syncTransports) {
+            this.writeToTransport(transport, entry)
+        }
     }
 
-    protected async writeToAllTransports(entry: LogEntry) {
-        return Promise.all(this.transports.map(async (i) => this.writeToTransport(i, entry)))
-    }
-
-    protected async writeToTransport(transport: Transport, entry: LogEntry) {
+    protected writeToTransport(transport: Transport, entry: LogEntry) {
         if (!transport.isTransportAllowed(entry)) {
             return
         }
 
-        return transport.write(entry, this).catch((error) => this.onTransportError(transport, error, entry))
+        return transport.write(entry, this)
+    }
+
+    protected async writeToAllAsyncTransports(entry: LogEntry) {
+        return Promise.all(this.asyncTransports.map(async (i) => this.writeToAsyncTransport(i, entry)))
+    }
+
+    protected async writeToAsyncTransport(transport: Transport, entry: LogEntry) {
+        if (!transport.isTransportAllowed(entry)) {
+            return
+        }
+
+        return transport.writeAsync(entry, this).catch((error) => this.onTransportError(transport, error, entry))
     }
 
     protected createChildLogger<T extends BaseLogger>(instance: T, options: ChildLoggerOptions = {}) {
         const { name, parentNames = [], forwardEvents = true, ...rest } = { ...this.options, ...options }
         const { level = this.level, silent = this.silent } = rest
-        const { filters = this.filters, formatters = this.formatters, transports = this.transports } = rest
+        const { filters = this.filters, formatters = this.formatters } = rest
+        const { transports = [...this.syncTransports, ...this.asyncTransports] } = rest
 
         const child = new (instance.constructor as typeof BaseLogger)({
             ...rest,
@@ -191,5 +203,16 @@ export class BaseLogger extends TypedEventEmitter<LoggerEvents> {
 
     protected onTransportError(transport: Transport, error: any, entry: LogEntry) {
         this.emit('log-error', error, entry, transport, this)
+    }
+
+    protected getTransports(transports: Transport[]) {
+        const syncTransports: Transport[] = []
+        const asyncTransports: Transport[] = []
+
+        for (const transport of transports) {
+            (transport.writeType === 'sync' ? syncTransports : asyncTransports).push(transport)
+        }
+
+        return { syncTransports, asyncTransports }
     }
 }

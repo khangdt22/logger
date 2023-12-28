@@ -1,5 +1,5 @@
 import { notNullish } from '@khangdt22/utils/condition'
-import { createDeferred } from '@khangdt22/utils/promise'
+import { createDeferred, type Awaitable } from '@khangdt22/utils/promise'
 import { TypedEventEmitter } from '@khangdt22/utils/event'
 import type { AnyObject } from '@khangdt22/utils/object'
 import type { LogFormatter, LogEntry } from '../types'
@@ -15,6 +15,7 @@ export abstract class Transport<E extends AnyObject = AnyObject> extends TypedEv
     public readonly silent: boolean
     public readonly level?: number
     public readonly formatters: LogFormatter[]
+    public readonly writeType: 'sync' | 'async' = 'async'
 
     protected constructor(name: string, options: TransportOptions) {
         super()
@@ -35,21 +36,37 @@ export abstract class Transport<E extends AnyObject = AnyObject> extends TypedEv
         return notNullish(this.level) ? level >= this.level : true
     }
 
-    public async write(entry: LogEntry, logger: BaseLogger) {
+    public write(entry: LogEntry, logger: BaseLogger) {
+        const message = this.getLogMessage(entry, logger)
+
+        try {
+            this.log(message, entry, logger)
+        } catch (error) {
+            this.onError(error)
+        }
+    }
+
+    public async writeAsync(entry: LogEntry, logger: BaseLogger) {
         const isLogged = createDeferred<void>()
         const clean = addExitHandler(() => isLogged)
-        const formattedEntry = this.formatters.reduce((entry, fmt) => fmt(entry, logger), { ...entry })
-        const message = formattedEntry[LOG_FORMATTED_MESSAGE] ?? toJson(formattedEntry)
+        const message = this.getLogMessage(entry, logger)
 
-        return this.log(message, entry, logger).catch(this.onError.bind(this)).finally(() => {
+        return (this.log(message, entry, logger) as Promise<void>).catch(this.onError.bind(this)).finally(() => {
             isLogged.resolve()
             clean()
         })
     }
 
-    protected abstract log(message: string, entry: LogEntry, logger: BaseLogger): Promise<void>
+    protected abstract log(message: string, entry: LogEntry, logger: BaseLogger): Awaitable<void>
 
-    protected onError(error: Error) {
+    protected getLogMessage(entry: LogEntry, logger: BaseLogger) {
+        const newEntry = { ...entry }
+        const formattedEntry = this.formatters.reduce((entry, fmt) => fmt(entry, logger), newEntry)
+
+        return formattedEntry[LOG_FORMATTED_MESSAGE] ?? toJson(formattedEntry)
+    }
+
+    protected onError(error: unknown) {
         throw new TransportError(this, undefined, { cause: error })
     }
 }

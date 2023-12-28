@@ -1,4 +1,3 @@
-import { createDeferred } from '@khangdt22/utils/promise'
 import type { LogEntry } from '../types'
 import { Transport } from './transport'
 import type { TransportOptions } from './types'
@@ -8,6 +7,8 @@ export interface ConsoleTransportOptions extends TransportOptions {
 }
 
 export class ConsoleTransport extends Transport {
+    public override readonly writeType = 'sync'
+
     protected readonly stderrLevels: number[]
 
     public constructor(options: ConsoleTransportOptions = {}) {
@@ -16,18 +17,11 @@ export class ConsoleTransport extends Transport {
         this.stderrLevels = options.stderrLevels ?? []
     }
 
-    protected async log(message: string, entry: LogEntry) {
-        const isWrote = createDeferred<void>()
-        const stream = this.stderrLevels.includes(entry.level) ? process.stderr : process.stdout
+    protected log(message: string, entry: LogEntry) {
+        this.getStream(entry).write(message + '\n', 'utf8')
+    }
 
-        stream.write(message + '\n', 'utf8', (error) => {
-            if (error) {
-                isWrote.reject(error)
-            } else {
-                isWrote.resolve()
-            }
-        })
-
-        return isWrote
+    protected getStream(entry: LogEntry) {
+        return this.stderrLevels.includes(entry.level) ? process.stderr : process.stdout
     }
 }
