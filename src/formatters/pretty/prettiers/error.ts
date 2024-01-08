@@ -72,7 +72,13 @@ export function formatError(error: Error, options: FormatErrorOptions = {}) {
         payloadMsg = `\n${formatParams(Object.fromEntries(errPayload), { ...options.formatPayloadOptions, indent })}`
     }
 
-    return `${errType} ${messageColor(err.message)}\n${errStack.join('\n')}${payloadMsg}`
+    let subErr: string | undefined
+
+    if (err instanceof AggregateError) {
+        subErr = indentStr(err.errors.map((e) => formatError(e, { ...options, badge: true })).join('\n'), indent)
+    }
+
+    return `${errType} ${messageColor(err.message)}\n${errStack.join('\n')}${payloadMsg}` + (subErr ? `\n${subErr}` : '')
 }
 
 export function containsOnlyErrors(entry: LogEntry) {
