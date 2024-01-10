@@ -1,6 +1,7 @@
-import { format, type FormatOptions } from '@khangdt22/utils/number'
-import { format as formatDate, type FormatOptions as FormatDateOptions } from 'date-fns'
-import { dim, bold, yellow } from 'colorette'
+import { inspect } from 'node:util'
+import { type FormatOptions, format } from '@khangdt22/utils/number'
+import { type FormatOptions as FormatDateOptions, format as formatDate } from 'date-fns'
+import { bold, dim, yellow } from 'colorette'
 
 export interface PrettifyOptions {
     formatNumber?: boolean
@@ -25,5 +26,5 @@ export function prettify(input: unknown, options: PrettifyOptions = {}) {
         input = formatDate(input, timeFormat, formatTimeOptions)
     }
 
-    return typeof input === 'string' ? (bold(yellow(input)) + suffix) : input
+    return typeof input === 'string' ? (bold(yellow(input)) + suffix) : inspect(input)
 }
